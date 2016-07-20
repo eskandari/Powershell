@@ -1,0 +1,47 @@
+<# 
+Create virtual directory
+#>
+
+Import-Module ServerManager
+
+if(!(Test-Path 'IIS:\Sites\Default Web Site\EhsanBlog')){
+  New-Item 'IIS:\Sites\Default Web Site\EhsanBlog' -physicalPath C:\inetpub\EhsanBlogapp -type VirtualDirectory
+}else {
+  Write-Output "The EhsanBlog Folder has already been created."
+}
+
+
+<# 
+creating app pool
+#>
+
+$EhsanAppPool = 'EhsanBlogAppPool'
+
+if(!(Test-Path IIS:\AppPools\$EhsanAppPool))
+{
+    $appPool = New-Item $EhsanAppPool
+    $appPool | Set-ItemProperty -Name "managedRuntimeVersion" -Value 'v4.0'
+    $appPool | Set-ItemProperty -Name "enable32BitAppOnWin64" -Value $True
+}
+
+Set-ItemProperty iis:\Sites\$EhsanAppPool -Name applicationpool -Value $EhsanAppPool
+
+
+<# 
+Create web site
+#>
+
+
+$websitepath = 'C:\inetpub\EhsanBlog'
+$websitePool = 'EhsanBlogAppPool'
+$websitedomain = 'passionatecoder.ca'
+
+New-Item $websitepath -type Directory -Verbose -Force
+ 
+New-Item iis:\Sites\$websitePool `
+del-bindings @{protocol="http";bindingInformation="*:80:$websitedomain"}`
+-physicalPath $websitepath -Verbose -Force
+
+Copy-Item -Path C:\temp\insidewebfiles\* `
+    -Destination $websitepath `
+    -Recurse 
